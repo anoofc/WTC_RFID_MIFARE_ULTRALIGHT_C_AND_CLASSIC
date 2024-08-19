@@ -1,10 +1,10 @@
-#define DEBUG 1
-#define MODE  0          // 0 For Slave, 1 For Master, 2 For Clear Data
+#define DEBUG 0           // 1 For Debugging, 0 For No Debugging
+#define MODE  1           // 0 For Slave, 1 For Master, 2 For Clear Data
 
 
 #define DEVICE_ID  4      // Device ID for the device
 
-#define SS_PIN          D8
+#define SS_PIN          D8    
 #define RST_PIN         D0
 
 #include <Arduino.h>
@@ -78,18 +78,18 @@ void clearArray(){
     addData[i] = 0x00;
     readData[i] = 0x00;
   }
-    if (DEBUG){
-      Serial.println("SUM DATA");
-      for(int i=0; i<16; i++){
-        Serial.print(addData[i]); Serial.print(", ");
-      }
-      Serial.println();
-      Serial.println("READ DATA");
-      for(int i=0; i<16; i++){
-        Serial.print(readData[i]); Serial.print(", ");
-      }
-      Serial.println();
+  if (DEBUG){
+    Serial.println("SUM DATA");
+    for(int i=0; i<16; i++){
+      Serial.print(addData[i]); Serial.print(", ");
     }
+    Serial.println();
+    Serial.println("READ DATA");
+    for(int i=0; i<16; i++){
+      Serial.print(readData[i]); Serial.print(", ");
+    }
+    Serial.println();
+  }
 }
 
 
@@ -189,24 +189,23 @@ void readData_UL(){
     Serial.println(mfrc522.GetStatusCodeName(status));
     return;
   }
-
-  Serial.print(F("Readed data: "));
-  //Dump a byte array to Serial
-  for (byte i = 0; i < 16; i++) {
-    readData[i] = buffer_UL[i];
-    Serial.print(buffer_UL[i] < 0x10 ? " 0" : " ");
-    Serial.print(buffer_UL[i], HEX);
-  
-  }
-  Serial.println();
+  if (DEBUG){
+    Serial.print(F("Readed data: "));}
+    //Dump a byte array to Serial
+    for (byte i = 0; i < 16; i++) {
+      readData[i] = buffer_UL[i];
+      if (DEBUG){
+      Serial.print(buffer_UL[i] < 0x10 ? " 0" : " ");
+      Serial.print(buffer_UL[i], HEX);  }
+    
+    }
+    if (DEBUG){Serial.println();}
 }
 
 void masterDataPrint (){
   char count = '@';
   for (byte i = 0; i < 16; i++) {
-    
-      addData[i] = buffer[i];
-      if (addData[i]==1){ count++;}
+      if (readData[i]==1){ count++;}
   }
   Serial.println(count);
 }
@@ -224,9 +223,11 @@ void cardCheck (){
       readData_UL();
       processDataArray();
       writeData_UL();
+      clearArray();
     } else if (MODE == 1){    // MASTER MODE
       readData_UL();
       masterDataPrint();
+      clearArray();
       
     } else if (MODE == 2){    // CLEAR DATA
       clearArray();
@@ -242,9 +243,11 @@ void cardCheck (){
       readBlock_Classic();
       processDataArray();
       writeBlock_Classic();
+      clearArray();
     } else if (MODE == 1){
       readBlock_Classic();
       masterDataPrint();
+      clearArray();
     } else if (MODE == 2){
       clearArray();
       writeBlock_Classic();
@@ -285,8 +288,6 @@ void loop() {
 
   
   cardCheck();        // Check card type and write data to card 
-
-  clearArray();
 
   mfrc522.PICC_HaltA();     // Halt PICC 
   mfrc522.PCD_StopCrypto1();
