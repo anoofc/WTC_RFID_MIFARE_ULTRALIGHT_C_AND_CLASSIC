@@ -3,21 +3,24 @@
 
 #define DEVICE_ID  1      // Device ID for the device
 
-#define SS_PIN          D8    
-#define RST_PIN         D0
+#define SS_PIN          D8      // SS Pin for SPI communication
+#define RST_PIN         D0      // RST Pin for SPI communication
+#define NUMPIXELS 10            // Number of pixels in the LED strip
 
 #include <Arduino.h>        // Include the Arduino library
 #include <SPI.h>            // Library for SPI communication
 #include <MFRC522.h>        // Library for RFID
+#include <Adafruit_NeoPixel.h>
 
-MFRC522 mfrc522(SS_PIN, RST_PIN);  // Create MFRC522 instance
-MFRC522::StatusCode status;        //variable to get card status
-MFRC522::MIFARE_Key key;          //create a MIFARE_Key struct named 'key', which will hold the card information
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUMPIXELS, D2, NEO_GRB + NEO_KHZ800);
+MFRC522 mfrc522(SS_PIN, RST_PIN);   // Create MFRC522 instance
+MFRC522::StatusCode status;         //variable to get card status
+MFRC522::MIFARE_Key key;            //create a MIFARE_Key struct named 'key', which will hold the card information
 
-uint32_t lastMillis = 0;
-bool ok = true;
-bool flag = false;
-uint8_t count = 0;
+uint32_t lastMillis = 0;            //variable to store the last time the LED strip was updated
+bool ok = true;                     //flag to indicate if the LEDs should be set to white color
+bool flag = false;                  //flag to indicate if the LEDs should be updated
+uint8_t count = 0;                  //variable to store the count of LED updates
 
 byte buffer_UL[18];               //data transfer buffer_UL (16+2 bytes data+CRC)
 byte buffer[18];                  //data transfer buffer (16+2 bytes data+CRC)
@@ -49,6 +52,16 @@ uint8_t deviceID [] = {         // Device ID
 };
 
 
+/**
+ * Updates the LED strip based on the current state.
+ * 
+ * This function is responsible for updating the LED strip based on the current state of the program.
+ * It checks if the flag is set and if enough time has passed since the last update. If so, it increments
+ * the count and updates the LED strip accordingly. If the count exceeds 8, it resets the count, sets the
+ * flag to false, and turns off all LEDs. If the count is less than or equal to 8, it sets the LEDs to white
+ * color if the 'ok' flag is true, and turns off all LEDs if the 'ok' flag is false. The LED strip is then
+ * updated to reflect the changes.
+ */
 void updateStrip(){
   if (flag){
     if (millis() - lastMillis < 250) {
@@ -81,9 +94,15 @@ void updateStrip(){
       strip.show();
     }
   }
-  
 }
 
+
+/**
+ * Blinks the on-board LED.
+ * 
+ * This function is responsible for blinking the on-board LED connected to pin D4.
+ * It sets the pin mode to OUTPUT, turns the LED off, waits for 500 milliseconds, and then turns the LED on.
+ */
 void blinkLED() {
   pinMode(D4, OUTPUT);
   digitalWrite(D4, LOW);
@@ -232,7 +251,6 @@ void writeBlock_Classic(){
     Serial.println(mfrc522.GetStatusCodeName(status));
     return;
   }
-
 }
 
 
@@ -296,7 +314,6 @@ void readData_UL(){
       if (DEBUG){
       Serial.print(buffer_UL[i] < 0x10 ? " 0" : " ");
       Serial.print(buffer_UL[i], HEX);  }
-    
     }
     if (DEBUG){Serial.println();}
 }
@@ -370,8 +387,6 @@ void cardCheck (){
     }
 
     mfrc522.PICC_HaltA();     // Halt PICC 
-
-    // to do
 
   } else {
     Serial.println(F("Card is not compatible!!!"));
