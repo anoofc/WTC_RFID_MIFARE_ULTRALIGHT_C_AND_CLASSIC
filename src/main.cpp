@@ -1,50 +1,51 @@
-#define DEBUG 1           // 1 For Debugging, 0 For No Debugging
-#define MODE  0           // 0 For Slave, 1 For Master, 2 For Clear Data
+#define DEBUG 1                 // 1 For Debugging, 0 For No Debugging
+#define MODE  0                 // 0 For Slave, 1 For Master, 2 For Clear Data
 
-#define DEVICE_ID  1      // Device ID for the device
+#define DEVICE_ID  1            // Device ID for the device
 
 #define SS_PIN          D8      // SS Pin for SPI communication
 #define RST_PIN         D0      // RST Pin for SPI communication
 #define NUMPIXELS 10            // Number of pixels in the LED strip
 
-#include <Arduino.h>        // Include the Arduino library
-#include <SPI.h>            // Library for SPI communication
-#include <MFRC522.h>        // Library for RFID
+#include <Arduino.h>            // Include the Arduino library
+#include <SPI.h>                // Library for SPI communication
+#include <MFRC522.h>            // Library for RFID
 #include <Adafruit_NeoPixel.h>
 
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUMPIXELS, D2, NEO_GRB + NEO_KHZ800);
 MFRC522 mfrc522(SS_PIN, RST_PIN);   // Create MFRC522 instance
-MFRC522::StatusCode status;         //variable to get card status
-MFRC522::MIFARE_Key key;            //create a MIFARE_Key struct named 'key', which will hold the card information
+MFRC522::StatusCode status;         // variable to get card status
+MFRC522::MIFARE_Key key;            // create a MIFARE_Key struct named 'key', which will hold the card information
 
-uint32_t lastMillis = 0;            //variable to store the last time the LED strip was updated
-bool ok = true;                     //flag to indicate if the LEDs should be set to white color
-bool flag = false;                  //flag to indicate if the LEDs should be updated
-uint8_t count = 0;                  //variable to store the count of LED updates
+uint32_t lastMillis = 0;            // variable to store the last time the LED strip was updated
+bool ok = true;                     // flag to indicate if the LEDs should be set to white color
+bool flag = false;                  // flag to indicate if the LEDs should be updated
+uint8_t count = 0;                  // variable to store the count of LED updates
 
-byte buffer_UL[18];               //data transfer buffer_UL (16+2 bytes data+CRC)
-byte buffer[18];                  //data transfer buffer (16+2 bytes data+CRC)
-byte size = sizeof(buffer);       //size of the buffer
-byte size_UL = sizeof(buffer_UL); //size of the buffer_UL
+byte buffer_UL[18];                 // data transfer buffer_UL (16+2 bytes data+CRC)
+byte buffer[18];                    // data transfer buffer (16+2 bytes data+CRC)
+byte size = sizeof(buffer);         // size of the buffer
+byte size_UL = sizeof(buffer_UL);   // size of the buffer_UL
 
-byte trailerBlock   = 7;     // Block address for sector trailer
-byte blockAddr      = 4;     // Block address for Mifare Classic
-uint8_t pageAddr_UL = 0x06;  // In this example we will write/read 16 bytes (page 6,7,8 and 9).
-                             // Ultraligth mem = 16 pages. 4 bytes per page. 
-                             // Pages 0 to 4 are for special functions.  
-uint8_t addData [] = {          // Data to write
+byte trailerBlock   = 7;            // Block address for sector trailer
+byte blockAddr      = 4;            // Block address for Mifare Classic
+uint8_t pageAddr_UL = 0x06;         // In this example we will write/read 16 bytes (page 6,7,8 and 9).
+                                    // Ultraligth mem = 16 pages. 4 bytes per page. 
+                                    // Pages 0 to 4 are for special functions.  
+
+uint8_t addData [] = {      // Data to write
     0x00, 0x00, 0x00, 0x00, // 0,  1,  2,  3
     0x00, 0x00, 0x00, 0x00, // 4,  5,  6,  7
     0x00, 0x00, 0x00, 0x00, // 8,  9,  10, 11
     0x00, 0x00, 0x00, 0x00  // 12, 13, 14, 15
 };         
-uint8_t readData [] = {         // Data read
+uint8_t readData [] = {     // Data read
     0x00, 0x00, 0x00, 0x00, // 0,  1,  2,  3
     0x00, 0x00, 0x00, 0x00, // 4,  5,  6,  7
     0x00, 0x00, 0x00, 0x00, // 8,  9,  10, 11
     0x00, 0x00, 0x00, 0x00  // 12, 13, 14, 15
 };
-uint8_t deviceID [] = {         // Device ID
+uint8_t deviceID [] = {     // Device ID
     0x00, 0x00, 0x00, 0x00, // 0,  1,  2,  3
     0x00, 0x00, 0x00, 0x00, // 4,  5,  6,  7
     0x00, 0x00, 0x00, 0x00, // 8,  9,  10, 11
@@ -135,6 +136,7 @@ void setDeviceId(){             // Set Device ID
  * between the corresponding elements. The result is stored in the addData array.
  * If the DEBUG flag is enabled, the function also prints the contents of the addData array to the Serial monitor.
  */
+
 void processDataArray() {
     for (byte i = 0; i < 16; i++) {
         addData[i] = deviceID[i] | readData[i];
@@ -149,7 +151,6 @@ void processDataArray() {
     }
 
 }
-
 
 /* clearArray() function
  * Clear the addData and readData arrays by setting all elements to 0x00.
@@ -176,13 +177,13 @@ void clearArray(){
   }
 }
 
-
 // FOR CLASSIC CARD
 /*
 * authenticate() function
 * Authenticate the card using key A.
 * This function authenticates the card using key A and the specified trailer block.
 */
+
 void authenticate(){
     // Authenticate using key A
     if (DEBUG){ Serial.println(F("Authenticating using key A..."));}
@@ -200,8 +201,6 @@ void dump_byte_array(byte *buffer, byte bufferSize) {
     }
 }
 
-
-
 /**
  * Reads data from a block in the MIFARE Classic RFID tag.
  * 
@@ -211,6 +210,7 @@ void dump_byte_array(byte *buffer, byte bufferSize) {
  * If the DEBUG flag is enabled, it prints the data read from the block using the dump_byte_array function.
  * Finally, it copies the read data into the readData array.
  */
+
 void readBlock_Classic(){
   // Read data from the block
   if (DEBUG){
@@ -225,7 +225,6 @@ void readBlock_Classic(){
   for (byte i = 0; i < 16; i++) {
       readData[i] = buffer[i];
   }
-  
 }
 
 /**
@@ -253,9 +252,7 @@ void writeBlock_Classic(){
   }
 }
 
-
 // FOR ULTRALIGHT CARD
-
 
 /**
  * Writes data to MIFARE Ultralight RFID tag.
@@ -324,6 +321,7 @@ void readData_UL(){
  * This function iterates through the `readData` array and counts the number of elements that have a value of 1. 
  * The count is then printed to the Serial monitor as a character ('A').
  */
+
 void masterDataPrint (){
   char count = '@';
   for (byte i = 0; i < 16; i++) {
@@ -345,6 +343,7 @@ void masterDataPrint (){
  * 
  * @note The DEBUG and MODE variables are assumed to be defined and set appropriately before calling this function.
  */
+
 void cardCheck (){
 
   byte cardType = mfrc522.PICC_GetType(mfrc522.uid.sak);
@@ -366,8 +365,6 @@ void cardCheck (){
       clearArray();
       writeData_UL();
     }
-
-
   } else if (cardType == MFRC522::PICC_TYPE_MIFARE_1K) {
     if (DEBUG){ Serial.println(F("MIFARE Classic 1K"));}
     authenticate();           // Authenticate using key A
@@ -385,15 +382,12 @@ void cardCheck (){
       clearArray();
       writeBlock_Classic();
     }
-
     mfrc522.PICC_HaltA();     // Halt PICC 
-
   } else {
     Serial.println(F("Card is not compatible!!!"));
     mfrc522.PICC_HaltA();   // Halt PICC
     return;
   }
-
 }
 
 // SETUP 
@@ -419,5 +413,4 @@ void loop() {
 
   mfrc522.PICC_HaltA();       // Halt PICC 
   mfrc522.PCD_StopCrypto1();  // Stop encryption on PCD
-
 }
