@@ -5,7 +5,7 @@
 
 #define SS_PIN          D8      // SS Pin for SPI communication
 #define RST_PIN         D0      // RST Pin for SPI communication
-#define NUMPIXELS 10            // Number of pixels in the LED strip
+#define NUMPIXELS       10      // Number of pixels in the LED strip
 
 #include <Arduino.h>            // Include the Arduino library
 #include <SPI.h>                // Library for SPI communication
@@ -105,11 +105,9 @@ void updateStrip(){
  * It sets the pin mode to OUTPUT, turns the LED off, waits for 500 milliseconds, and then turns the LED on.
  */
 void blinkLED() {
-  pinMode(D4, OUTPUT);
   digitalWrite(D4, LOW);
   delay(500);
   digitalWrite(D4, HIGH);
-  
 }
 
 
@@ -218,6 +216,14 @@ void readBlock_Classic(){
     Serial.println(F(" ..."));
   }
   status = (MFRC522::StatusCode) mfrc522.MIFARE_Read(blockAddr, buffer, &size);
+  if (status != MFRC522::STATUS_OK){
+    if (DEBUG){
+      Serial.print(F("MIFARE_Read() failed: "));
+      Serial.println(mfrc522.GetStatusCodeName(status));
+    }
+    ESP.restart();
+    return;
+  }
   if (DEBUG){Serial.print(F("Data in block ")); Serial.print(blockAddr); Serial.println(F(":"));
     dump_byte_array(buffer, 16); Serial.println();
     Serial.println();
@@ -245,9 +251,12 @@ void writeBlock_Classic(){
   if (status == MFRC522::STATUS_OK){
     flag = true;
     if (DEBUG){Serial.println(F("MIFARE_Write() OK "));}
-  } else if (DEBUG && status != MFRC522::STATUS_OK){
-    Serial.print(F("MIFARE_Write() failed: "));
-    Serial.println(mfrc522.GetStatusCodeName(status));
+  } else if (status != MFRC522::STATUS_OK){
+    if (DEBUG){
+      Serial.print(F("MIFARE_Write() failed: "));
+      Serial.println(mfrc522.GetStatusCodeName(status));
+    }
+    ESP.restart();
     return;
   }
 }
@@ -277,10 +286,12 @@ void writeData_UL(){
     flag = true;
     if (DEBUG){Serial.println(F("MIFARE_Ultralight_Write() OK "));}
       // LED BLINK FLAG ENABLE HERE
-  } else if (DEBUG && status != MFRC522::STATUS_OK) {
+  } else if (status != MFRC522::STATUS_OK) {
+    if (DEBUG){
       Serial.print(F("MIFARE_Read() failed: "));
-      Serial.println(mfrc522.GetStatusCodeName(status));
-      return;
+      Serial.println(mfrc522.GetStatusCodeName(status)); }
+    ESP.restart();
+    return;
   }
 }
 
@@ -298,9 +309,10 @@ void readData_UL(){
   if (DEBUG){ Serial.println(F("Reading data ... ")); }
   //data in 4 block is readed at once.
   status = (MFRC522::StatusCode) mfrc522.MIFARE_Read(pageAddr_UL, buffer_UL, &size_UL);
-  if (DEBUG && status != MFRC522::STATUS_OK) {
-    Serial.print(F("MIFARE_Read() failed: "));
-    Serial.println(mfrc522.GetStatusCodeName(status));
+  if (status != MFRC522::STATUS_OK) {
+    if (DEBUG) { Serial.print(F("MIFARE_Read() failed: "));
+    Serial.println(mfrc522.GetStatusCodeName(status));}
+    ESP.restart();
     return;
   }
   if (DEBUG){
@@ -393,8 +405,12 @@ void cardCheck (){
 // SETUP 
 void setup() {
   Serial.begin(9600);                   // Initialize serial communications with the PC
+  pinMode(D4, OUTPUT);
   SPI.begin();                          // Init SPI bus
   mfrc522.PCD_Init();                   // Init MFRC522 card 
+  delay(100);                             // Optional delay. Some board do need more time after init to be ready, see Readme
+  strip.begin();                        // Initialize the LED strip
+  strip.show();                         // Initialize all pixels to 'off'
   if (MODE==0) { setDeviceId(); }       // Set Device ID
   for (byte i = 0; i < 6; i++) {
     key.keyByte[i] = 0xFF;
