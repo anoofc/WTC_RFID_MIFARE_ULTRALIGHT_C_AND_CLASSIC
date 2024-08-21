@@ -1,7 +1,7 @@
-#define DEBUG 0           // 1 For Debugging, 0 For No Debugging
-#define MODE  1           // 0 For Slave, 1 For Master, 2 For Clear Data
+#define DEBUG 1           // 1 For Debugging, 0 For No Debugging
+#define MODE  0           // 0 For Slave, 1 For Master, 2 For Clear Data
 
-#define DEVICE_ID  4      // Device ID for the device
+#define DEVICE_ID  1      // Device ID for the device
 
 #define SS_PIN          D8    
 #define RST_PIN         D0
@@ -13,6 +13,11 @@
 MFRC522 mfrc522(SS_PIN, RST_PIN);  // Create MFRC522 instance
 MFRC522::StatusCode status;        //variable to get card status
 MFRC522::MIFARE_Key key;          //create a MIFARE_Key struct named 'key', which will hold the card information
+
+uint32_t lastMillis = 0;
+bool ok = true;
+bool flag = false;
+uint8_t count = 0;
 
 byte buffer_UL[18];               //data transfer buffer_UL (16+2 bytes data+CRC)
 byte buffer[18];                  //data transfer buffer (16+2 bytes data+CRC)
@@ -42,6 +47,51 @@ uint8_t deviceID [] = {         // Device ID
     0x00, 0x00, 0x00, 0x00, // 8,  9,  10, 11
     0x00, 0x00, 0x00, 0x00  // 12, 13, 14, 15
 };
+
+
+void updateStrip(){
+  if (flag){
+    if (millis() - lastMillis < 250) {
+      return;
+    }
+    lastMillis = millis();
+    count++;
+    if (count>8){
+      count = 0;
+      flag = false;
+      ok = true;
+      for (int i=0; i<strip.numPixels(); i++){
+        strip.setPixelColor(i, strip.Color(0, 0, 0));
+      }
+      strip.show();
+      return;
+    }
+    if (ok){
+      for (int i=0; i<strip.numPixels(); i++){
+        strip.setPixelColor(i, strip.Color(255, 255, 255));
+      }
+      ok = false;
+      strip.show();
+      return;
+    } else {
+      for (int i=0; i<strip.numPixels(); i++){
+        strip.setPixelColor(i, strip.Color(0, 0, 0));
+      }
+      ok = true;
+      strip.show();
+    }
+  }
+  
+}
+
+void blinkLED() {
+  pinMode(D4, OUTPUT);
+  digitalWrite(D4, LOW);
+  delay(500);
+  digitalWrite(D4, HIGH);
+  
+}
+
 
 // setDeviceId() function sets the device ID by iterating through each byte of the deviceID array 
 // and assigning a value based on the current index. If the index matches the DEVICE_ID constant, 
@@ -174,7 +224,10 @@ void writeBlock_Classic(){
   Serial.println(F(" ..."));
   dump_byte_array(addData, 16); Serial.println();
   status = (MFRC522::StatusCode) mfrc522.MIFARE_Write(blockAddr, addData, 16);
-  if (DEBUG && status != MFRC522::STATUS_OK){
+  if (status == MFRC522::STATUS_OK){
+    flag = true;
+    if (DEBUG){Serial.println(F("MIFARE_Write() OK "));}
+  } else if (DEBUG && status != MFRC522::STATUS_OK){
     Serial.print(F("MIFARE_Write() failed: "));
     Serial.println(mfrc522.GetStatusCodeName(status));
     return;
@@ -206,6 +259,7 @@ void writeData_UL(){
     status = (MFRC522::StatusCode) mfrc522.MIFARE_Ultralight_Write(pageAddr_UL+i, &addData[i*4], 4);
   }
   if (status == MFRC522::STATUS_OK) {
+    flag = true;
     if (DEBUG){Serial.println(F("MIFARE_Ultralight_Write() OK "));}
       // LED BLINK FLAG ENABLE HERE
   } else if (DEBUG && status != MFRC522::STATUS_OK) {
@@ -340,6 +394,7 @@ void setup() {
 } 
 
 void loop() {
+  updateStrip();              // Update LED strip
   // Look for new cards
   if ( ! mfrc522.PICC_IsNewCardPresent())   { return; }   
   // Select one of the cards
