@@ -1,7 +1,12 @@
-#define DEBUG 1                 // 1 For Debugging, 0 For No Debugging
-#define MODE  0                 // 0 For Slave, 1 For Master, 2 For Clear Data
+#define DEBUG 0                 // 1 For Debugging, 0 For No Debugging
+#define MODE  1                 // 0 For TAG_WRITE, 1 For TAG_WRITE, 2 For TAG_CLEAR
 
-#define DEVICE_ID  1            // Device ID for the device
+/**
+ * DEVICE_ID: The device ID for the device. This value should be unique for each device in the system.
+ * For TAG Write, 0 to 7 can be used.
+ * For TAG Read, 0 to 11 can be used.
+ */
+#define DEVICE_ID  0            // Device ID for the device
 
 #define SS_PIN          D8      // SS Pin for SPI communication
 #define RST_PIN         D0      // RST Pin for SPI communication
@@ -16,6 +21,23 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUMPIXELS, D2, NEO_GRB + NEO_KHZ800)
 MFRC522 mfrc522(SS_PIN, RST_PIN);   // Create MFRC522 instance
 MFRC522::StatusCode status;         // variable to get card status
 MFRC522::MIFARE_Key key;            // create a MIFARE_Key struct named 'key', which will hold the card information
+
+uint8_t colors[][3] = {             // Array of colors for the LED strip
+  {255,   0,    0  },               // Red
+  {0,     255,  0  },               // Green
+  {0,     0,    255},               // Blue
+  {255,   255,  0  },               // Yellow
+  {255,   0,    255},               // Magenta
+  {0,     255,  255},               // Cyan
+  {255,   255,  255},               // White
+  {255,   140,  0  },               // Orange
+  {255,   0,    140},               // Pink
+  {0,     255,  140},               // Turquoise
+  {140,   255,  0  },               // Lime
+  {0,     140,  255}                // Sky Blue
+};
+
+
 
 uint32_t lastMillis = 0;            // variable to store the last time the LED strip was updated
 bool ok = true;                     // flag to indicate if the LEDs should be set to white color
@@ -82,7 +104,7 @@ void updateStrip(){
     }
     if (ok){
       for (int i=0; i<strip.numPixels(); i++){
-        strip.setPixelColor(i, strip.Color(255, 255, 255));
+        strip.setPixelColor(i, strip.Color(colors[DEVICE_ID][0], colors[DEVICE_ID][1], colors[DEVICE_ID][2]));
       }
       ok = false;
       strip.show();
@@ -224,6 +246,7 @@ void readBlock_Classic(){
     ESP.restart();
     return;
   }
+  if (MODE==1){flag = true;}
   if (DEBUG){Serial.print(F("Data in block ")); Serial.print(blockAddr); Serial.println(F(":"));
     dump_byte_array(buffer, 16); Serial.println();
     Serial.println();
@@ -285,7 +308,6 @@ void writeData_UL(){
   if (status == MFRC522::STATUS_OK) {
     flag = true;
     if (DEBUG){Serial.println(F("MIFARE_Ultralight_Write() OK "));}
-      // LED BLINK FLAG ENABLE HERE
   } else if (status != MFRC522::STATUS_OK) {
     if (DEBUG){
       Serial.print(F("MIFARE_Read() failed: "));
@@ -315,6 +337,7 @@ void readData_UL(){
     ESP.restart();
     return;
   }
+    if (MODE==1){flag = true;}
   if (DEBUG){
     Serial.print(F("Readed data: "));}
     //Dump a byte array to Serial
@@ -335,11 +358,12 @@ void readData_UL(){
  */
 
 void masterDataPrint (){
-  char count = '@';
+  byte count = 0;
+  const char c = 'A'+ DEVICE_ID;
   for (byte i = 0; i < 16; i++) {
       if (readData[i]==1){ count++;}
   }
-  Serial.println(count);
+  Serial.println(String(c) + String(count));
 }
 
 // CHECK CARD TYPE AND WRITE DATA TO CARD
@@ -404,7 +428,7 @@ void cardCheck (){
 
 // SETUP 
 void setup() {
-  Serial.begin(9600);                   // Initialize serial communications with the PC
+  Serial.begin(9600);                   // Initialize serial communications
   pinMode(D4, OUTPUT);
   SPI.begin();                          // Init SPI bus
   mfrc522.PCD_Init();                   // Init MFRC522 card 
@@ -415,6 +439,7 @@ void setup() {
   for (byte i = 0; i < 6; i++) {
     key.keyByte[i] = 0xFF;
   }
+  Serial.println();
   if (DEBUG) {Serial.println(F("Initializing....."));}    
 } 
 
