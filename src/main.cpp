@@ -42,8 +42,6 @@ uint8_t colors[][3] = {             // Array of colors for the LED strip
   {0,       0,  255}                //  GREEN
 };
 
-
-
 uint32_t lastMillis = 0;            // variable to store the last time the LED strip was updated
 bool ok = true;                     // flag to indicate if the LEDs should be set to white color
 bool flag = false;                  // flag to indicate if the LEDs should be updated
@@ -78,7 +76,6 @@ uint8_t deviceID [] = {     // Device ID
     0x00, 0x00, 0x00, 0x00, // 8,  9,  10, 11
     0x00, 0x00, 0x00, 0x00  // 12, 13, 14, 15
 };
-
 
 /**
  * Updates the LED strip based on the current state.
@@ -124,7 +121,6 @@ void updateStrip(){
   }
 }
 
-
 /**
  * Blinks the on-board LED.
  * 
@@ -136,7 +132,6 @@ void blinkLED() {
   delay(500);
   digitalWrite(D4, HIGH);
 }
-
 
 // setDeviceId() function sets the device ID by iterating through each byte of the deviceID array 
 // and assigning a value based on the current index. If the index matches the DEVICE_ID constant, 
