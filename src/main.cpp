@@ -1,12 +1,12 @@
 #define DEBUG 0                 // 1 For Debugging, 0 For No Debugging
-#define MODE  1                 // 0 For TAG_WRITE, 1 For TAG_WRITE, 2 For TAG_CLEAR
+#define MODE  0                 // 0 For TAG_WRITE, 1 For TAG_WRITE, 2 For TAG_CLEAR
 
 /**
  * DEVICE_ID: The device ID for the device. This value should be unique for each device in the system.
  * For TAG Write, 0 to 7 can be used.
  * For TAG Read, 0 to 11 can be used.
  */
-#define DEVICE_ID       4       // Device ID for the device
+#define DEVICE_ID       6       // Device ID for the device
 
 #define SS_PIN          D8      // SS Pin for SPI communication
 #define RST_PIN         D0      // RST Pin for SPI communication
@@ -362,15 +362,13 @@ void readData_UL(){
  */
 
 void masterDataPrint (){
-  if (readData[15]==0x01){ Serial.println("*VIP#");} 
-  else {
-    byte count = 0;
-    const char c = 'A'+ DEVICE_ID;
-    for (byte i = 0; i < 16; i++) {
-        if (readData[i]==1){ count++;}
-    }
-    Serial.println(String(c) + String(count));
+  byte count = 0;
+  const char c = 'A'+ DEVICE_ID;
+  for (byte i = 0; i < 16; i++) {
+    if (readData[i]==1){ count++;}
   }
+  if  ( readData[15]==0x01){ Serial.println(String(c)+ "VIP" );} 
+  else{ Serial.println(String(c) + String(count)); }
 }
 
 // CHECK CARD TYPE AND WRITE DATA TO CARD
