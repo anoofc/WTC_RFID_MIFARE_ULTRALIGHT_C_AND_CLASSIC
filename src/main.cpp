@@ -6,35 +6,40 @@
  * For TAG Write, 0 to 7 can be used.
  * For TAG Read, 0 to 11 can be used.
  */
-#define DEVICE_ID  0            // Device ID for the device
+#define DEVICE_ID       4       // Device ID for the device
 
 #define SS_PIN          D8      // SS Pin for SPI communication
 #define RST_PIN         D0      // RST Pin for SPI communication
+#define LEDPIN          D2      // On-board LED pin
 #define NUMPIXELS       10      // Number of pixels in the LED strip
+#define LED_DELAY       250     // Delay between LED updates in milliseconds  
 
 #include <Arduino.h>            // Include the Arduino library
 #include <SPI.h>                // Library for SPI communication
 #include <MFRC522.h>            // Library for RFID
 #include <Adafruit_NeoPixel.h>
 
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUMPIXELS, D2, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUMPIXELS, LEDPIN, NEO_BRG + NEO_KHZ800);
 MFRC522 mfrc522(SS_PIN, RST_PIN);   // Create MFRC522 instance
 MFRC522::StatusCode status;         // variable to get card status
 MFRC522::MIFARE_Key key;            // create a MIFARE_Key struct named 'key', which will hold the card information
 
 uint8_t colors[][3] = {             // Array of colors for the LED strip
-  {255,   0,    0  },               // Red
-  {0,     255,  0  },               // Green
-  {0,     0,    255},               // Blue
-  {255,   255,  0  },               // Yellow
-  {255,   0,    255},               // Magenta
-  {0,     255,  255},               // Cyan
-  {255,   255,  255},               // White
-  {255,   140,  0  },               // Orange
-  {255,   0,    140},               // Pink
-  {0,     255,  140},               // Turquoise
-  {140,   255,  0  },               // Lime
-  {0,     140,  255}                // Sky Blue
+  {8,     158,  209},               // Light Blue
+  {10,    179,  161},               // DB Green
+  {255,   188,  0  },               // Yellow
+  {255,    95,  0  },               // Orange
+  {45,     73,  223},               // indigo Blue
+  {8,     158,  209},               // Light Blue
+  {10,    179,  161},               // DB Green
+  {255,   188,  0  },               // Yellow
+  {255,    95,  0  },               // Orange
+  {45,     73,  223},               // indigo Blue
+  {8,     158,  209},               // Light Blue
+  {10,    179,  161},               // DB Green
+  {255,   188,  0  },               // Yellow
+  {255,    95,  0  },               // Orange
+  {0,       0,  255}                //  GREEN
 };
 
 
@@ -87,7 +92,7 @@ uint8_t deviceID [] = {     // Device ID
  */
 void updateStrip(){
   if (flag){
-    if (millis() - lastMillis < 250) {
+    if (millis() - lastMillis < LED_DELAY) {
       return;
     }
     lastMillis = millis();
@@ -97,21 +102,21 @@ void updateStrip(){
       flag = false;
       ok = true;
       for (int i=0; i<strip.numPixels(); i++){
-        strip.setPixelColor(i, strip.Color(0, 0, 0));
+        strip.setPixelColor(i, strip.Color(colors[DEVICE_ID][0], colors[DEVICE_ID][1], colors[DEVICE_ID][2]));
       }
       strip.show();
       return;
     }
     if (ok){
       for (int i=0; i<strip.numPixels(); i++){
-        strip.setPixelColor(i, strip.Color(colors[DEVICE_ID][0], colors[DEVICE_ID][1], colors[DEVICE_ID][2]));
+        strip.setPixelColor(i, strip.Color(colors[14][0], colors[14][1], colors[14][2]));
       }
       ok = false;
       strip.show();
       return;
     } else {
       for (int i=0; i<strip.numPixels(); i++){
-        strip.setPixelColor(i, strip.Color(0, 0, 0));
+        strip.setPixelColor(i, strip.Color(colors[DEVICE_ID][0], colors[DEVICE_ID][1], colors[DEVICE_ID][2]));
       }
       ok = true;
       strip.show();
@@ -158,18 +163,17 @@ void setDeviceId(){             // Set Device ID
  */
 
 void processDataArray() {
-    for (byte i = 0; i < 16; i++) {
-        addData[i] = deviceID[i] | readData[i];
-    }
-    if (DEBUG) {
-      Serial.println(F("Data in block after processing:"));
-    for (int i = 0; i < 16; i++) {
-      Serial.print(addData[i] < 0x10 ? " 0" : " ");
-      Serial.print(addData[i]);
-    }
-    Serial.println();
-    }
-
+  for (byte i = 0; i < 16; i++) {
+      addData[i] = deviceID[i] | readData[i];
+  }
+  if (DEBUG) {
+    Serial.println(F("Data in block after processing:"));
+  for (int i = 0; i < 16; i++) {
+    Serial.print(addData[i] < 0x10 ? " 0" : " ");
+    Serial.print(addData[i]);
+  }
+  Serial.println();
+  }
 }
 
 /* clearArray() function
@@ -177,7 +181,6 @@ void processDataArray() {
  * This function iterates through each element of the addData and readData arrays and sets the value to 0x00.
  * If the DEBUG flag is enabled, the function also prints the contents of the addData and readData arrays to the Serial monitor.
  */
-
 void clearArray(){
   for (int i=0; i<16; i++){
     addData[i] = 0x00;
@@ -273,6 +276,7 @@ void writeBlock_Classic(){
   status = (MFRC522::StatusCode) mfrc522.MIFARE_Write(blockAddr, addData, 16);
   if (status == MFRC522::STATUS_OK){
     flag = true;
+    if (MODE == 0){Serial.println(F("MIFARE_Write() OK ")); }
     if (DEBUG){Serial.println(F("MIFARE_Write() OK "));}
   } else if (status != MFRC522::STATUS_OK){
     if (DEBUG){
@@ -307,6 +311,7 @@ void writeData_UL(){
   }
   if (status == MFRC522::STATUS_OK) {
     flag = true;
+    if (MODE == 0){Serial.println(F("MIFARE_Ultralight_Write() OK ")); }
     if (DEBUG){Serial.println(F("MIFARE_Ultralight_Write() OK "));}
   } else if (status != MFRC522::STATUS_OK) {
     if (DEBUG){
@@ -337,17 +342,16 @@ void readData_UL(){
     ESP.restart();
     return;
   }
-    if (MODE==1){flag = true;}
-  if (DEBUG){
-    Serial.print(F("Readed data: "));}
-    //Dump a byte array to Serial
-    for (byte i = 0; i < 16; i++) {
-      readData[i] = buffer_UL[i];
-      if (DEBUG){
+  if (MODE==1){flag = true;}
+  if (DEBUG){Serial.print(F("Readed data: "));}
+  //Dump a byte array to Serial
+  for (byte i = 0; i < 16; i++) {
+    readData[i] = buffer_UL[i];
+    if (DEBUG){
       Serial.print(buffer_UL[i] < 0x10 ? " 0" : " ");
       Serial.print(buffer_UL[i], HEX);  }
-    }
-    if (DEBUG){Serial.println();}
+  }
+  if (DEBUG){Serial.println();}
 }
 
 /**
@@ -358,12 +362,15 @@ void readData_UL(){
  */
 
 void masterDataPrint (){
-  byte count = 0;
-  const char c = 'A'+ DEVICE_ID;
-  for (byte i = 0; i < 16; i++) {
-      if (readData[i]==1){ count++;}
+  if (readData[15]==0x01){ Serial.println("*VIP#");} 
+  else {
+    byte count = 0;
+    const char c = 'A'+ DEVICE_ID;
+    for (byte i = 0; i < 16; i++) {
+        if (readData[i]==1){ count++;}
+    }
+    Serial.println(String(c) + String(count));
   }
-  Serial.println(String(c) + String(count));
 }
 
 // CHECK CARD TYPE AND WRITE DATA TO CARD
@@ -434,7 +441,10 @@ void setup() {
   mfrc522.PCD_Init();                   // Init MFRC522 card 
   delay(100);                             // Optional delay. Some board do need more time after init to be ready, see Readme
   strip.begin();                        // Initialize the LED strip
-  strip.show();                         // Initialize all pixels to 'off'
+  for (int i=0; i<strip.numPixels(); i++){
+    strip.setPixelColor(i, strip.Color(colors[DEVICE_ID][0], colors[DEVICE_ID][1], colors[DEVICE_ID][2]));
+  }
+  strip.show();                         // Initialize all pixels to 'IDLE COLOR'
   if (MODE==0) { setDeviceId(); }       // Set Device ID
   for (byte i = 0; i < 6; i++) {
     key.keyByte[i] = 0xFF;
