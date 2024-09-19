@@ -1,12 +1,12 @@
 #define DEBUG 0                 // 1 For Debugging, 0 For No Debugging
-#define MODE  0                 // 0 For TAG_WRITE, 1 For TAG_WRITE, 2 For TAG_CLEAR
+#define MODE  0                 // 0 For TAG_WRITE, 1 For TAG_READ, 2 For TAG_CLEAR
 
 /**
  * DEVICE_ID: The device ID for the device. This value should be unique for each device in the system.
  * For TAG Write, 0 to 7 can be used.
  * For TAG Read, 0 to 11 can be used.
  */
-#define DEVICE_ID       6       // Device ID for the device
+#define DEVICE_ID       7       // Device ID for the device
 
 #define SS_PIN          D8      // SS Pin for SPI communication
 #define RST_PIN         D0      // RST Pin for SPI communication
@@ -39,7 +39,7 @@ uint8_t colors[][3] = {             // Array of colors for the LED strip
   {10,    179,  161},               // DB Green
   {255,   188,  0  },               // Yellow
   {255,    95,  0  },               // Orange
-  {0,       0,  255}                //  GREEN
+  {0,       0,  255}                // BLUE
 };
 
 uint32_t lastMillis = 0;            // variable to store the last time the LED strip was updated
@@ -140,11 +140,10 @@ void blinkLED() {
 void setDeviceId(){             // Set Device ID
   for (byte i = 0; i < 16; i++) {
     if (i==DEVICE_ID){          
-        deviceID[i] = 0x01;
+      deviceID[i] = 0x01;
     } else {
-        deviceID[i] = 0x00;
+      deviceID[i] = 0x00;
     }
-
     if (DEBUG){Serial.print(deviceID[i]); Serial.print(", ");}
   } 
   if (DEBUG){Serial.println();}
@@ -159,7 +158,7 @@ void setDeviceId(){             // Set Device ID
 
 void processDataArray() {
   for (byte i = 0; i < 16; i++) {
-      addData[i] = deviceID[i] | readData[i];
+    addData[i] = deviceID[i] | readData[i];
   }
   if (DEBUG) {
     Serial.println(F("Data in block after processing:"));
@@ -203,9 +202,9 @@ void clearArray(){
 */
 
 void authenticate(){
-    // Authenticate using key A
-    if (DEBUG){ Serial.println(F("Authenticating using key A..."));}
-    status = (MFRC522::StatusCode) mfrc522.PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, trailerBlock, &key, &(mfrc522.uid));
+  // Authenticate using key A
+  if (DEBUG){ Serial.println(F("Authenticating using key A..."));}
+  status = (MFRC522::StatusCode) mfrc522.PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, trailerBlock, &key, &(mfrc522.uid));
 }
 
 // dump_byte_array() function
@@ -213,10 +212,10 @@ void authenticate(){
 // This function takes a byte array and its size as input and prints each element in hexadecimal format.
 
 void dump_byte_array(byte *buffer, byte bufferSize) {
-    for (byte i = 0; i < bufferSize; i++) {
-        Serial.print(buffer[i] < 0x10 ? " 0" : " ");
-        Serial.print(buffer[i], HEX);
-    }
+  for (byte i = 0; i < bufferSize; i++) {
+      Serial.print(buffer[i] < 0x10 ? " 0" : " ");
+      Serial.print(buffer[i], HEX);
+  }
 }
 
 /**
@@ -264,7 +263,7 @@ void readBlock_Classic(){
  */
 
 void writeBlock_Classic(){
-// Write data to the block
+  // Write data to the block
   Serial.print(F("Writing data into block ")); Serial.print(blockAddr);
   Serial.println(F(" ..."));
   dump_byte_array(addData, 16); Serial.println();
@@ -432,9 +431,9 @@ void setup() {
   pinMode(D4, OUTPUT);
   SPI.begin();                          // Init SPI bus
   mfrc522.PCD_Init();                   // Init MFRC522 card 
-  delay(100);                             // Optional delay. Some board do need more time after init to be ready, see Readme
+  delay(100);                           // Optional delay. Some board do need more time after init to be ready, see Readme
   strip.begin();                        // Initialize the LED strip
-  for (int i=0; i<strip.numPixels(); i++){
+  for (int i=0; i<strip.numPixels(); i++){ 
     strip.setPixelColor(i, strip.Color(colors[DEVICE_ID][0], colors[DEVICE_ID][1], colors[DEVICE_ID][2]));
   }
   strip.show();                         // Initialize all pixels to 'IDLE COLOR'
